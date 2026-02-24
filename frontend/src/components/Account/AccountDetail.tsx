@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import PageContainer from "../Layout/PageContainer";
 import Spinner from "../common/Spinner";
 import { useAccounts } from "../../hooks/useAccounts";
+import { useSmsVerification } from "../../hooks/useSmsVerification";
 import { useToastStore } from "../../store/toast";
 import { authenticate, AuthenticationError } from "../../apple/authenticate";
-import { storeIdToCountry } from "../../apple/config";
 import { getErrorMessage } from "../../utils/error";
+import { storeIdToCountry } from "../../apple/config";
 
 export default function AccountDetail() {
   const { email } = useParams<{ email: string }>();
@@ -27,12 +28,17 @@ export default function AccountDetail() {
   const [reauthCode, setReauthCode] = useState("");
   const [needsCode, setNeedsCode] = useState(false);
 
+  const decodedEmail = email ? decodeURIComponent(email) : "";
+  const account = accounts.find((a) => a.email === decodedEmail);
+
+  const sms = useSmsVerification(
+    account?.email ?? "",
+    account?.password ?? "",
+  );
+
   useEffect(() => {
     loadAccounts();
   }, [loadAccounts]);
-
-  const decodedEmail = email ? decodeURIComponent(email) : "";
-  const account = accounts.find((a) => a.email === decodedEmail);
 
   if (storeLoading) {
     return (
@@ -63,12 +69,19 @@ export default function AccountDetail() {
     setReauthing(true);
 
     try {
+      // If SMS was used, verify the code through IDMSA first
+      const smsWasVerified = sms.smsSent && needsCode && reauthCode;
+      if (smsWasVerified) {
+        await sms.verifySmsCode(reauthCode);
+      }
+
       const updated = await authenticate(
         account.email,
         account.password,
         needsCode && reauthCode ? reauthCode : undefined,
         account.cookies,
         account.deviceIdentifier,
+        !!smsWasVerified,
       );
       await updateAccount(updated);
       setNeedsCode(false);
@@ -137,35 +150,134 @@ export default function AccountDetail() {
         </section>
 
         {needsCode && (
-          <section className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
-            <label
-              htmlFor="reauth-code"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              {t("accounts.detail.code")}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id="reauth-code"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                value={reauthCode}
-                onChange={(e) => setReauthCode(e.target.value)}
-                disabled={reauthing}
-                placeholder="000000"
-                className="block flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800/50 transition-colors"
-                autoFocus
-              />
-              <button
-                onClick={handleReauth}
-                disabled={reauthing || !reauthCode}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+          <section className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 space-y-4">
+            <div>
+              <label
+                htmlFor="reauth-code"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
-                {reauthing && <Spinner />}
-                {t("accounts.detail.verify")}
-              </button>
+                {t("accounts.detail.code")}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="reauth-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={reauthCode}
+                  onChange={(e) => setReauthCode(e.target.value)}
+                  disabled={reauthing}
+                  placeholder="000000"
+                  className="block flex-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 dark:disabled:bg-gray-800/50 transition-colors"
+                  autoFocus
+                />
+                <button
+                  onClick={handleReauth}
+                  disabled={reauthing || !reauthCode}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                >
+                  {reauthing && <Spinner />}
+                  {t("accounts.detail.verify")}
+                </button>
+              </div>
+            </div>
+
+            {/* SMS verification controls */}
+            <div>
+              {!sms.smsMode ? (
+                <button
+                  type="button"
+                  onClick={sms.initiateSms}
+                  disabled={reauthing || sms.smsLoading}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {t("accounts.detail.useSms")}
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  {sms.smsLoading && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <Spinner />
+                      {t("accounts.addForm.sendingSms")}
+                    </div>
+                  )}
+
+                  {sms.smsError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {sms.smsError}
+                    </p>
+                  )}
+
+                  {sms.codeLocked && (
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                      {t("accounts.addForm.codeLocked")}
+                    </p>
+                  )}
+
+                  {sms.tooManyCodes && !sms.codeLocked && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      {t("accounts.addForm.tooManyCodes")}
+                    </p>
+                  )}
+
+                  {sms.cooldown && !sms.tooManyCodes && !sms.codeLocked && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      {t("accounts.addForm.cooldown")}
+                    </p>
+                  )}
+
+                  {sms.smsSent && sms.smsPhone && (
+                    <p className="text-sm text-green-600 dark:text-green-400">
+                      {t("accounts.addForm.smsSent", { phone: sms.smsPhone })}
+                    </p>
+                  )}
+
+                  {/* Phone number selection (multiple phones) */}
+                  {!sms.smsLoading &&
+                    !sms.smsSent &&
+                    sms.phoneNumbers.length > 1 && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {t("accounts.addForm.selectPhone")}
+                        </p>
+                        {sms.phoneNumbers.map((phone) => (
+                          <label
+                            key={phone.id}
+                            className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                          >
+                            <input
+                              type="radio"
+                              name="sms-phone-detail"
+                              checked={sms.selectedPhoneId === phone.id}
+                              onChange={() => sms.setSelectedPhoneId(phone.id)}
+                              className="text-blue-600 focus:ring-blue-500"
+                            />
+                            {phone.numberWithDialCode}
+                          </label>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => sms.sendSms()}
+                          disabled={sms.smsLoading || sms.selectedPhoneId === null}
+                          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                        >
+                          {sms.smsLoading && <Spinner />}
+                          {t("accounts.addForm.sendCode")}
+                        </button>
+                      </div>
+                    )}
+
+                  <button
+                    type="button"
+                    onClick={sms.resetSms}
+                    disabled={sms.smsLoading}
+                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 transition-colors"
+                  >
+                    {t("accounts.detail.backToDevice")}
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         )}

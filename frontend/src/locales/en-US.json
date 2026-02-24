@@ -98,6 +98,16 @@
       "code": "2FA Verification Code",
       "codePlaceholder": "000000",
       "codeHelp": "Enter the verification code from your trusted device.",
+      "useSms": "Use SMS instead",
+      "sendingSms": "Requesting SMS code...",
+      "smsSent": "SMS sent to {{phone}}",
+      "selectPhone": "Select a phone number to receive the code:",
+      "sendCode": "Send Code",
+      "smsHelp": "Enter the code received via SMS.",
+      "cooldown": "Please wait before requesting another code.",
+      "tooManyCodes": "Too many codes sent. Please try again later.",
+      "codeLocked": "Verification code is locked. Please try again later.",
+      "backToDevice": "Use trusted device instead",
       "signIn": "Sign In",
       "verify": "Verify",
       "cancel": "Cancel",
@@ -120,6 +130,8 @@
       "code": "2FA Verification Code",
       "verify": "Verify",
       "reauth": "Re-authenticate",
+      "useSms": "Use SMS instead",
+      "backToDevice": "Use trusted device instead",
       "delete": "Delete Account",
       "confirmDelete": "Confirm Delete",
       "cancel": "Cancel",
@@ -402,7 +414,11 @@
       "emptyBody": "Authentication failed: server returned HTTP {{status}} with empty body",
       "missingAccountInfo": "Missing accountInfo in response",
       "missingAddress": "Missing address in response",
-      "unknownReason": "Authentication failed for an unknown reason"
+      "unknownReason": "Authentication failed for an unknown reason",
+      "idmsaSigninFailed": "Failed to initiate SMS verification",
+      "noPhoneNumbers": "No trusted phone numbers found on this account",
+      "smsRequestFailed": "Failed to send SMS verification code",
+      "smsVerifyFailed": "SMS verification code is incorrect or expired"
     }
   },
   "toast": {

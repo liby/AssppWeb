@@ -98,6 +98,16 @@
       "code": "双重认证代码",
       "codePlaceholder": "000000",
       "codeHelp": "输入来自您受信任设备的验证码。",
+      "useSms": "使用短信验证",
+      "sendingSms": "正在请求短信验证码...",
+      "smsSent": "短信已发送至 {{phone}}",
+      "selectPhone": "选择接收验证码的手机号：",
+      "sendCode": "发送验证码",
+      "smsHelp": "输入通过短信收到的验证码。",
+      "cooldown": "请稍后再请求新的验证码。",
+      "tooManyCodes": "验证码发送次数过多，请稍后再试。",
+      "codeLocked": "验证码已锁定，请稍后再试。",
+      "backToDevice": "使用受信任设备验证",
       "signIn": "登录",
       "verify": "验证",
       "cancel": "取消",
@@ -120,6 +130,8 @@
       "code": "双重认证代码",
       "verify": "验证",
       "reauth": "重新认证",
+      "useSms": "使用短信验证",
+      "backToDevice": "使用受信任设备验证",
       "delete": "删除账号",
       "confirmDelete": "确认删除",
       "cancel": "取消",
@@ -402,7 +414,11 @@
       "emptyBody": "认证失败：服务器返回 HTTP {{status}} 且响应体为空",
       "missingAccountInfo": "响应中缺少 accountInfo",
       "missingAddress": "响应中缺少 address",
-      "unknownReason": "未知原因导致认证失败"
+      "unknownReason": "未知原因导致认证失败",
+      "idmsaSigninFailed": "无法发起短信验证",
+      "noPhoneNumbers": "该账号未找到受信任的手机号",
+      "smsRequestFailed": "发送短信验证码失败",
+      "smsVerifyFailed": "短信验证码不正确或已过期"
     }
   },
   "toast": {

@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import PageContainer from "../Layout/PageContainer";
 import Spinner from "../common/Spinner";
 import { useAccounts } from "../../hooks/useAccounts";
+import { useSmsVerification } from "../../hooks/useSmsVerification";
 import { useToastStore } from "../../store/toast";
 import { authenticate, AuthenticationError } from "../../apple/authenticate";
-import { generateDeviceId } from "../../apple/config";
 import { getErrorMessage } from "../../utils/error";
+import { generateDeviceId } from "../../apple/config";
 
 export default function AddAccountForm() {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ export default function AddAccountForm() {
   const [needsCode, setNeedsCode] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const sms = useSmsVerification(email, password);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -30,12 +33,19 @@ export default function AddAccountForm() {
       const cleanedDeviceId = deviceId.replace(/[: ]/g, "");
       setDeviceId(cleanedDeviceId);
 
+      // If SMS was used, verify the code through IDMSA first
+      const smsWasVerified = sms.smsSent && needsCode && code;
+      if (smsWasVerified) {
+        await sms.verifySmsCode(code);
+      }
+
       const account = await authenticate(
         email,
         password,
         needsCode && code ? code : undefined,
         undefined,
         cleanedDeviceId,
+        !!smsWasVerified,
       );
       await addAccount(account);
       addToast(t("accounts.addForm.addSuccess"), "success");
@@ -150,8 +160,107 @@ export default function AddAccountForm() {
                   autoFocus
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {t("accounts.addForm.codeHelp")}
+                  {sms.smsSent
+                    ? t("accounts.addForm.smsHelp")
+                    : t("accounts.addForm.codeHelp")}
                 </p>
+
+                {/* SMS verification controls */}
+                <div className="mt-3">
+                  {!sms.smsMode ? (
+                    <button
+                      type="button"
+                      onClick={sms.initiateSms}
+                      disabled={loading || sms.smsLoading || !email || !password}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {t("accounts.addForm.useSms")}
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      {sms.smsLoading && (
+                        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                          <Spinner />
+                          {t("accounts.addForm.sendingSms")}
+                        </div>
+                      )}
+
+                      {sms.smsError && (
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {sms.smsError}
+                        </p>
+                      )}
+
+                      {sms.codeLocked && (
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {t("accounts.addForm.codeLocked")}
+                        </p>
+                      )}
+
+                      {sms.tooManyCodes && !sms.codeLocked && (
+                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                          {t("accounts.addForm.tooManyCodes")}
+                        </p>
+                      )}
+
+                      {sms.cooldown && !sms.tooManyCodes && !sms.codeLocked && (
+                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                          {t("accounts.addForm.cooldown")}
+                        </p>
+                      )}
+
+                      {sms.smsSent && sms.smsPhone && (
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          {t("accounts.addForm.smsSent", { phone: sms.smsPhone })}
+                        </p>
+                      )}
+
+                      {/* Phone number selection (multiple phones) */}
+                      {!sms.smsLoading &&
+                        !sms.smsSent &&
+                        sms.phoneNumbers.length > 1 && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {t("accounts.addForm.selectPhone")}
+                            </p>
+                            {sms.phoneNumbers.map((phone) => (
+                              <label
+                                key={phone.id}
+                                className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name="sms-phone"
+                                  checked={sms.selectedPhoneId === phone.id}
+                                  onChange={() => sms.setSelectedPhoneId(phone.id)}
+                                  className="text-blue-600 focus:ring-blue-500"
+                                />
+                                {phone.numberWithDialCode}
+                              </label>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => sms.sendSms()}
+                              disabled={sms.smsLoading || sms.selectedPhoneId === null}
+                              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                            >
+                              {sms.smsLoading && <Spinner />}
+                              {t("accounts.addForm.sendCode")}
+                            </button>
+                          </div>
+                        )}
+
+                      <button
+                        type="button"
+                        onClick={sms.resetSms}
+                        disabled={sms.smsLoading}
+                        className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-50 transition-colors"
+                      >
+                        {t("accounts.addForm.backToDevice")}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </section>

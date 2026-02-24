@@ -7,6 +7,8 @@ wisp.options.hostname_whitelist = [
   /^buy\.itunes\.apple\.com$/,
   /^init\.itunes\.apple\.com$/,
   /^p\d+-buy\.itunes\.apple\.com$/,
+  /^idmsa\.apple\.com$/,
+  /^idmsa\.apple\.com\.cn$/,
 ];
 wisp.options.port_whitelist = [443];
 wisp.options.allow_direct_ip = false;

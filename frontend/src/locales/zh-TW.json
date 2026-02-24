@@ -98,6 +98,16 @@
       "code": "雙重認證代碼",
       "codePlaceholder": "000000",
       "codeHelp": "輸入來自您受信任裝置的驗證碼。",
+      "useSms": "使用簡訊驗證",
+      "sendingSms": "正在請求簡訊驗證碼...",
+      "smsSent": "簡訊已傳送至 {{phone}}",
+      "selectPhone": "選擇接收驗證碼的手機號碼：",
+      "sendCode": "傳送驗證碼",
+      "smsHelp": "輸入透過簡訊收到的驗證碼。",
+      "cooldown": "請稍後再請求新的驗證碼。",
+      "tooManyCodes": "驗證碼傳送次數過多，請稍後再試。",
+      "codeLocked": "驗證碼已鎖定，請稍後再試。",
+      "backToDevice": "使用受信任裝置驗證",
       "signIn": "登入",
       "verify": "驗證",
       "cancel": "取消",
@@ -120,6 +130,8 @@
       "code": "雙重認證代碼",
       "verify": "驗證",
       "reauth": "重新認證",
+      "useSms": "使用簡訊驗證",
+      "backToDevice": "使用受信任裝置驗證",
       "delete": "刪除帳號",
       "confirmDelete": "確認刪除",
       "cancel": "取消",
@@ -402,7 +414,11 @@
       "emptyBody": "認證失敗：伺服器傳回 HTTP {{status}} 且回應主體為空",
       "missingAccountInfo": "回應中缺少 accountInfo",
       "missingAddress": "回應中缺少 address",
-      "unknownReason": "未知原因導致認證失敗"
+      "unknownReason": "未知原因導致認證失敗",
+      "idmsaSigninFailed": "無法發起簡訊驗證",
+      "noPhoneNumbers": "該帳號未找到受信任的手機號碼",
+      "smsRequestFailed": "傳送簡訊驗證碼失敗",
+      "smsVerifyFailed": "簡訊驗證碼不正確或已過期"
     }
   },
   "toast": {

@@ -98,6 +98,16 @@
       "code": "2ファクタ認証コード",
       "codePlaceholder": "000000",
       "codeHelp": "信頼できるデバイスからの確認コードを入力してください。",
+      "useSms": "SMSで認証",
+      "sendingSms": "SMS認証コードをリクエスト中...",
+      "smsSent": "SMSを {{phone}} に送信しました",
+      "selectPhone": "認証コードを受信する電話番号を選択：",
+      "sendCode": "コードを送信",
+      "smsHelp": "SMSで受信した認証コードを入力してください。",
+      "cooldown": "しばらくしてから再度コードをリクエストしてください。",
+      "tooManyCodes": "コードの送信回数が多すぎます。しばらくしてから再試行してください。",
+      "codeLocked": "認証コードがロックされています。しばらくしてから再試行してください。",
+      "backToDevice": "信頼できるデバイスで認証",
       "signIn": "サインイン",
       "verify": "確認",
       "cancel": "キャンセル",
@@ -120,6 +130,8 @@
       "code": "2ファクタ認証コード",
       "verify": "確認",
       "reauth": "再認証",
+      "useSms": "SMSで認証",
+      "backToDevice": "信頼できるデバイスで認証",
       "delete": "アカウントを削除",
       "confirmDelete": "削除を確認",
       "cancel": "キャンセル",
@@ -402,7 +414,11 @@
       "emptyBody": "認証失敗: サーバーが空のボディでHTTP {{status}}を返しました",
       "missingAccountInfo": "レスポンスに accountInfo がありません",
       "missingAddress": "レスポンスに address がありません",
-      "unknownReason": "不明な理由により認証に失敗しました"
+      "unknownReason": "不明な理由により認証に失敗しました",
+      "idmsaSigninFailed": "SMS認証の開始に失敗しました",
+      "noPhoneNumbers": "このアカウントに信頼できる電話番号が見つかりません",
+      "smsRequestFailed": "SMS認証コードの送信に失敗しました",
+      "smsVerifyFailed": "SMS認証コードが正しくないか、有効期限が切れています"
     }
   },
   "toast": {

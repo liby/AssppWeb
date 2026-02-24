@@ -57,6 +57,26 @@ The server is a blind TCP proxy. It NEVER sees Apple credentials.
 
 **Key invariant**: The server NEVER sees Apple credentials. All Apple TLS terminates at the browser via libcurl.js WASM (Mbed TLS 1.3). The server only receives public CDN URLs and non-secret metadata for IPA compilation. The bag proxy (`/api/bag`) only returns public Apple service URLs — no credentials pass through it.
 
+### IDMSA Hybrid Authentication (SMS 2FA)
+
+MZFinance (the primary auth protocol) only supports trusted-device push for 2FA — it has no SMS request endpoint. To support SMS verification codes, the app uses Apple's IDMSA REST API (`idmsa.apple.com/appleauth/auth`) as a side channel:
+
+1. **IDMSA SRP signin** — two-step SRP-6a (Secure Remote Password) handshake:
+   - `POST /appleauth/auth/signin/init` — sends client public ephemeral `A`, receives `salt`, `iterations`, `protocol` (`s2k`/`s2k_fo`), server ephemeral `B`, session token `c`
+   - `POST /appleauth/auth/signin/complete` — sends SRP proofs `m1`/`m2`, obtains `X-Apple-ID-Session-Id` + `scnt` (409 = 2FA required)
+2. **Get phone numbers** (`GET /appleauth/auth`) — retrieves trusted phone list and rate-limit status
+3. **Request SMS** (`PUT /appleauth/auth/verify/phone`) — triggers SMS to a specific phone number
+4. User enters the received SMS code → submitted through the existing MZFinance flow (`password + code`, `attempt: "2"`)
+
+All IDMSA requests route through libcurl.js WASM + Wisp proxy, maintaining zero-trust architecture. The Wisp whitelist includes `idmsa.apple.com` and `idmsa.apple.com.cn` (for China region accounts).
+
+- **SRP implementation**: Uses `@foxt/js-srp` (GSA mode, SHA-256, 2048-bit group). Password derivation: `s2k` = `PBKDF2(SHA256(password), salt, iterations, 32)`, `s2k_fo` = `PBKDF2(hex(SHA256(password)).utf8, salt, iterations, 32)`
+- **Widget Key**: `d39ba9916b7251055b22c7f910e2ea796ee65e98b2ddecea8f5dde8d9d1a815d` (iCloud Web public key, may be rotated by Apple)
+- **OAuth headers**: IDMSA requires `X-Apple-OAuth-Client-Id`, `X-Apple-OAuth-Client-Type: firstPartyAuth`, and related headers with `Origin: https://www.icloud.com`
+- **IDMSA session**: held only in React component state (`useRef` in `useSmsVerification` hook), never persisted to IndexedDB
+- **User-Agent**: IDMSA requires a browser UA (Configurator UA is rejected); overridden per-request in `frontend/src/apple/idmsa.ts`
+- **Risk**: IDMSA-triggered SMS code may not be usable in MZFinance — needs real-account verification. Widget Key may be rotated by Apple
+
 ## Reference Implementation
 
 The Swift reference at `references/ApplePackage/` is the source of truth for Apple protocol behavior:
@@ -107,6 +127,8 @@ The Wisp server validates target hosts via `hostname_whitelist` in `backend/src/
 - `buy.itunes.apple.com` — purchase endpoint
 - `init.itunes.apple.com` — bag endpoint
 - `/^p\d+-buy\.itunes\.apple\.com$/` — pod-based hosts
+- `idmsa.apple.com` — IDMSA REST API for SMS 2FA
+- `idmsa.apple.com.cn` — IDMSA for China region accounts
 - Port restricted to `443` only
 - Direct IP targets blocked (`allow_direct_ip = false`)
 - Loopback IP targets blocked (`allow_loopback_ips = false`)
